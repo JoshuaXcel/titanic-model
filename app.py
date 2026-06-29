@@ -6,9 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# ─────────────────────────────────────────
-#  Page config
-# ─────────────────────────────────────────
+#  Page configuration
 st.set_page_config(
     page_title="Titanic Survival Predictor",
     page_icon="🚢",
@@ -16,8 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS
-
+#Custom CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;500;600&display=swap');
@@ -139,7 +136,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-#  Loading model & scaler
+#Loading model & scaler
 @st.cache_resource
 def load_model():
     return joblib.load("titanic_model.pkl")
@@ -152,20 +149,18 @@ model  = load_model()
 scaler = load_scaler()
 
 
-# ─────────────────────────────────────────
-#  Load & cache Titanic reference data
-# ─────────────────────────────────────────
+#Load & cache Titanic reference data
 @st.cache_data
 def load_titanic_data():
     df = pd.read_csv("titanic3.csv")
-    #  titanic3.csv uses lowercase cols — normalise first
+    #Normalising the data
     col_map = {}
     for c in df.columns:
         if c.lower() == "sibsp":   col_map[c] = "SibSp"
         elif c.lower() == "parch": col_map[c] = "Parch"
         else:                      col_map[c] = c.capitalize()
     df = df.rename(columns=col_map)
-    #  drop junk columns
+    #dropping unwanted columns
     for col in ["Cabin", "Boat", "Body", "Home.dest", "Ticket", "Name"]:
         if col in df.columns:
             df = df.drop(columns=[col])
@@ -176,17 +171,14 @@ def load_titanic_data():
 
 df = load_titanic_data()
 
-
-# ─────────────────────────────────────────
-#  Feature engineering (must match training)
-# ─────────────────────────────────────────
-#  9 features: Pclass, Sex(male=1), Age, SibSp, Parch, Fare,
+#Feature engineering to match training
+#9 features: Pclass, Sex(male=1), Age, SibSp, Parch, Fare,
 #              Embarked_Q, Embarked_S, FamilySize
 
 FEATURE_NAMES = ["Pclass", "Sex", "Age", "SibSp", "Parch", "Fare",
                  "Embarked_Q", "Embarked_S", "FamilySize"]
 
-# ── Validation rules (original data constraints) ──────────────────────
+#Validation rules
 VALID_PCLASS    = [1, 2, 3]
 AGE_MIN, AGE_MAX = 0.17, 80.0
 SIBSP_MIN, SIBSP_MAX = 0, 8
@@ -223,19 +215,15 @@ def engineer_and_scale(pclass, sex, age, sibsp, parch, fare, embarked):
 
     raw = np.array([[pclass, sex_enc, age, sibsp, parch,
                      fare, embarked_q, embarked_s, family_size]])
-    #  use the real scaler fitted during training
+    #using the real scaler fitted during training
     scaled = scaler.transform(raw)
     return scaled
 
 
-
-
-# ─────────────────────────────────────────
-#  SIDEBAR — Passenger Input
-# ─────────────────────────────────────────
+#SIDEBAR for Passenger Input
 with st.sidebar:
     st.markdown("<div class='hero-title' style='font-size:1.6rem'>🚢 Passenger Details</div>", unsafe_allow_html=True)
-    st.markdown("<div class='hero-sub'>Enter passenger info to predict survival.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-sub'>Enter passenger's information to predict.</div>", unsafe_allow_html=True)
     st.markdown("---")
 
     pclass = st.selectbox(
@@ -286,16 +274,13 @@ with st.sidebar:
 
     st.markdown("<div class='sidebar-note'>All inputs are validated against the original training data ranges before prediction.</div>", unsafe_allow_html=True)
     st.markdown("")
-    predict_btn = st.button("⚙️  Predict Survival", use_container_width=True, type="primary")
+    predict_btn = st.button("Predict Survival", use_container_width=True, type="primary")
 
-
-# ─────────────────────────────────────────
-#  MAIN — Hero + prediction output
-# ─────────────────────────────────────────
+#MAIN — Hero + prediction output
 st.markdown("<div class='hero-title'>Titanic Survival Predictor</div>", unsafe_allow_html=True)
 st.markdown("<div class='hero-sub'>SVM · RBF Kernel · StandardScaled · Trained on 1,047 passengers</div>", unsafe_allow_html=True)
 
-# ── Top KPI row ────────────────────────────────────────────────────────
+#Top KPI row 
 total     = len(df)
 survived  = df["Survived"].sum()
 perished  = total - survived
@@ -325,10 +310,7 @@ with c4:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-
-# ─────────────────────────────────────────
-#  Prediction block
-# ─────────────────────────────────────────
+#Prediction block
 if predict_btn:
     errors = validate_input(pclass, sex, age, sibsp, parch, fare, embarked)
 
@@ -355,7 +337,7 @@ if predict_btn:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        #  Show the engineered + scaled feature vector
+        #Show the engineered + scaled feature vector
         with st.expander("🔍 See how your input was processed"):
             sex_enc    = 1 if sex == "male" else 0
             embarked_q = 1 if embarked == "Q" else 0
@@ -370,17 +352,14 @@ if predict_btn:
 
 st.markdown("---")
 
-
-# ─────────────────────────────────────────
 #  EDA Section
-# ─────────────────────────────────────────
 st.markdown("<div class='section-header'>📊 Exploratory Data Analysis</div>", unsafe_allow_html=True)
 
 DARK_BG   = "#0d1117"
 CARD_BG   = "#1a2035"
 GREEN     = "#4ade80"
-RED       = "#f87171"
-GOLD      = "#fbbf24"
+RED       = "#d62728"
+GOLD      = "#f5f3f0"
 BLUE      = "#60a5fa"
 TEXT      = "#c9d1e0"
 
@@ -392,10 +371,10 @@ chart_layout = dict(
     margin=dict(t=40, b=30, l=10, r=10),
 )
 
-tab1, tab2, tab3, tab4 = st.tabs(["🏷️ Class & Gender", "👶 Age", "💰 Fare", "👪 Family"])
+tab1, tab2, tab3, tab4 = st.tabs(["CLASS & GENDER", "AGE", "FARE", "FAMILY"])
 
 
-# ── Tab 1: Class & Gender ─────────────────────────────────────────────
+#Tab 1: Class & Gender
 with tab1:
     col_a, col_b = st.columns(2)
 
@@ -406,7 +385,7 @@ with tab1:
 
         fig = px.bar(surv_class, x="Class", y="Count", color="Status",
                      barmode="group",
-                     color_discrete_map={"Survived": GREEN, "Perished": RED},
+                     color_discrete_map={"Survived": "#2ca02c", "Perished": "#d62728"},
                      title="Survival by Passenger Class")
         fig.update_layout(**chart_layout)
         st.plotly_chart(fig, use_container_width=True)
@@ -417,12 +396,12 @@ with tab1:
 
         fig = px.bar(surv_sex, x="Sex", y="Count", color="Status",
                      barmode="group",
-                     color_discrete_map={"Survived": GREEN, "Perished": RED},
+                     color_discrete_map={"Survived": "#2ca02c", "Perished": "#d62728"},
                      title="Survival by Gender")
         fig.update_layout(**chart_layout)
         st.plotly_chart(fig, use_container_width=True)
 
-    # Heatmap: class × sex survival rate
+    #Heatmap: class × sex survival rate
     pivot = df.groupby(["Pclass", "Sex"])["Survived"].mean().unstack() * 100
     pivot.index = ["1st Class", "2nd Class", "3rd Class"]
 
@@ -430,7 +409,7 @@ with tab1:
         z=pivot.values,
         x=pivot.columns,
         y=pivot.index,
-        colorscale=[[0, RED], [0.5, "#f97316"], [1, GREEN]],
+        colorscale=[[0, "#d62728"], [0.5, "#f97316"], [1, "#2ca02c"]],
         text=np.round(pivot.values, 1),
         texttemplate="%{text}%",
         showscale=True,
@@ -439,13 +418,13 @@ with tab1:
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ── Tab 2: Age ────────────────────────────────────────────────────────
+#Tab 2: Age 
 with tab2:
     col_a, col_b = st.columns(2)
 
     with col_a:
         fig = px.histogram(df, x="Age", color="Survived",
-                           color_discrete_map={0: RED, 1: GREEN},
+                           color_discrete_map={0: "#d62728", 1: "#2ca02c"},
                            nbins=30, barmode="overlay", opacity=0.75,
                            title="Age Distribution by Survival",
                            labels={"Survived": "Status"})
@@ -456,13 +435,13 @@ with tab2:
     with col_b:
         fig = px.box(df, x="Pclass", y="Age",
                      color="Survived",
-                     color_discrete_map={0: RED, 1: GREEN},
+                     color_discrete_map={0: "#d62728", 1: "#2ca02c"},
                      title="Age Spread by Class & Survival",
                      labels={"Pclass": "Class", "Survived": "Status"})
         fig.update_layout(**chart_layout)
         st.plotly_chart(fig, use_container_width=True)
 
-    # Age buckets
+    #Age buckets
     df["AgeBucket"] = pd.cut(df["Age"], bins=[0, 12, 18, 35, 60, 100],
                               labels=["Child (0–12)", "Teen (13–18)",
                                       "Adult (19–35)", "Middle (36–60)", "Senior (60+)"])
@@ -472,20 +451,20 @@ with tab2:
 
     fig = px.bar(surv_age, x="Age Group", y="Survival Rate",
                  color="Survival Rate",
-                 color_continuous_scale=[[0, RED], [0.5, GOLD], [1, GREEN]],
+                 color_continuous_scale=[[0, "#d62728"], [0.5, "#f5f3f0"], [1, "#2ca02c"]],
                  title="Survival Rate by Age Group (%)")
     fig.update_layout(**chart_layout, coloraxis_showscale=False)
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ── Tab 3: Fare ───────────────────────────────────────────────────────
+#Tab 3: Fare
 with tab3:
     col_a, col_b = st.columns(2)
 
     with col_a:
         fig = px.box(df, x="Survived", y="Fare",
                      color="Survived",
-                     color_discrete_map={0: RED, 1: GREEN},
+                     color_discrete_map={0: "#d62728", 1: "#2ca02c"},
                      title="Fare Distribution by Survival",
                      labels={"Survived": "Status"})
         fig.update_xaxes(tickvals=[0, 1], ticktext=["Perished", "Survived"])
@@ -503,13 +482,13 @@ with tab3:
 
         fig = px.bar(surv_fare, x="Fare Tier", y="Survival Rate",
                      color="Survival Rate",
-                     color_continuous_scale=[[0, RED], [0.5, GOLD], [1, GREEN]],
+                     color_continuous_scale=[[0, "#d62728"], [0.5, "#f5f3f0"], [1, "#2ca02c"]],
                      title="Survival Rate by Fare Tier (%)")
         fig.update_layout(**chart_layout, coloraxis_showscale=False)
         st.plotly_chart(fig, use_container_width=True)
 
     fig = px.scatter(df, x="Age", y="Fare", color="Survived",
-                     color_discrete_map={0: RED, 1: GREEN},
+                     color_discrete_map={0: "#d62728", 1: "#2ca02c"},
                      opacity=0.65, size_max=8,
                      title="Age vs. Fare — Coloured by Survival",
                      labels={"Survived": "Status"})
@@ -518,7 +497,7 @@ with tab3:
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ── Tab 4: Family ─────────────────────────────────────────────────────
+#Tab 4: Family
 with tab4:
     df["FamilySize"] = df["SibSp"] + df["Parch"] + 1
 
@@ -558,15 +537,12 @@ with tab4:
 
     fig = px.bar(surv_embark, x="Port", y="Count", color="Status",
                  barmode="group",
-                 color_discrete_map={"Survived": GREEN, "Perished": RED},
+                 color_discrete_map={"Survived": "#2ca02c", "Perished": "#d62728"},
                  title="Survival by Port of Embarkation")
     fig.update_layout(**chart_layout)
     st.plotly_chart(fig, use_container_width=True)
 
-
-# ─────────────────────────────────────────
-#  Footer
-# ─────────────────────────────────────────
+#Footer
 st.markdown("---")
 st.markdown(
     "<div style='text-align:center; color:#4a5568; font-size:0.8rem'>"

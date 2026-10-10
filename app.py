@@ -172,11 +172,13 @@ def load_titanic_data():
 df = load_titanic_data()
 
 #Feature engineering to match training
-#9 features: Pclass, Sex(male=1), Age, SibSp, Parch, Fare,
-#              Embarked_Q, Embarked_S, FamilySize
+#9 features, in the exact order the scaler was fitted on (scaler.feature_names_in_):
+#  pclass, sex (male=1, female=0), age, sibsp, parch, fare,
+#  embarked (S=0, C=1, Q=2), family_size (sibsp + parch + 1), is_alone (1 if family_size == 1)
 
-FEATURE_NAMES = ["Pclass", "Sex", "Age", "SibSp", "Parch", "Fare",
-                 "Embarked_Q", "Embarked_S", "FamilySize"]
+FEATURE_NAMES = ["pclass", "sex", "age", "sibsp", "parch", "fare",
+                 "embarked", "family_size", "is_alone"]
+EMBARKED_MAP = {"S": 0, "C": 1, "Q": 2}
 
 #Validation rules
 VALID_PCLASS    = [1, 2, 3]
@@ -207,14 +209,18 @@ def validate_input(pclass, sex, age, sibsp, parch, fare, embarked):
     return errors
 
 
-def engineer_and_scale(pclass, sex, age, sibsp, parch, fare, embarked):
-    sex_enc     = 1 if sex == "male" else 0
-    embarked_q  = 1 if embarked == "Q" else 0
-    embarked_s  = 1 if embarked == "S" else 0
-    family_size = sibsp + parch + 1
+def build_features(pclass, sex, age, sibsp, parch, fare, embarked):
+    sex_enc      = 1 if sex == "male" else 0
+    embarked_enc = EMBARKED_MAP[embarked]
+    family_size  = sibsp + parch + 1
+    is_alone     = 1 if family_size == 1 else 0
+    return pd.DataFrame([[pclass, sex_enc, age, sibsp, parch,
+                          fare, embarked_enc, family_size, is_alone]],
+                        columns=FEATURE_NAMES)
 
-    raw = np.array([[pclass, sex_enc, age, sibsp, parch,
-                     fare, embarked_q, embarked_s, family_size]])
+
+def engineer_and_scale(pclass, sex, age, sibsp, parch, fare, embarked):
+    raw = build_features(pclass, sex, age, sibsp, parch, fare, embarked)
     #using the real scaler fitted during training
     scaled = scaler.transform(raw)
     return scaled
@@ -339,13 +345,10 @@ if predict_btn:
 
         #Show the engineered + scaled feature vector
         with st.expander("🔍 See how your input was processed"):
-            sex_enc    = 1 if sex == "male" else 0
-            embarked_q = 1 if embarked == "Q" else 0
-            embarked_s = 1 if embarked == "S" else 0
+            raw_values = build_features(pclass, sex, age, sibsp, parch, fare, embarked)
             raw_df = pd.DataFrame({
                 "Feature": FEATURE_NAMES,
-                "Raw value": [pclass, sex_enc, age, sibsp, parch, fare,
-                              embarked_q, embarked_s, family_size],
+                "Raw value": raw_values.iloc[0].values,
                 "Scaled value": X_scaled[0].round(4),
             })
             st.dataframe(raw_df, use_container_width=True, hide_index=True)
@@ -546,7 +549,7 @@ with tab4:
 st.markdown("---")
 st.markdown(
     "<div style='text-align:center; color:#4a5568; font-size:0.8rem'>"
-    "Model: SVM (RBF kernel) · Features: Pclass, Sex, Age, SibSp, Parch, Fare, Embarked, FamilySize · "
+    "Model: SVM (RBF kernel) · Features: Pclass, Sex, Age, SibSp, Parch, Fare, Embarked, FamilySize, IsAlone · "
     "Preprocessing: StandardScaler"
     "</div>",
     unsafe_allow_html=True,

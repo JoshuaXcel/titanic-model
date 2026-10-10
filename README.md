@@ -18,7 +18,7 @@ For the charts, the app drops unused columns (name, ticket, cabin, boat, body, h
 
 ## Approach / model
 
-- **Features (9):** Pclass, Sex (male = 1), Age, SibSp, Parch, Fare, Embarked_Q, Embarked_S, and FamilySize (SibSp + Parch + 1)
+- **Features (9):** Pclass, Sex (male = 1), Age, SibSp, Parch, Fare, Embarked (S = 0, C = 1, Q = 2), FamilySize (SibSp + Parch + 1) and IsAlone
 - **Scaling:** `StandardScaler` (saved as `scaler.pkl`), fitted during training
 - **Model:** scikit-learn `SVC` with an RBF kernel (saved as `titanic_model.pkl`)
 - The app's header states the model was trained on 1,047 passengers
